@@ -2,20 +2,47 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+
+# 환경변수
 .env
+.env.*
+
+# 가상환경
 .venv/
 venv/
 env/
+
+# 빌드
 *.egg-info/
 dist/
 build/
+
+# IDE
 .idea/
 .vscode/
+
+# DB
 *.db
 *.sqlite3
+
+# 기타
 _state/
 indices/
 snapshot_cache/
-logs/
-elasticsearsh/
 *.pyc
+*.log
+*.bak
+*.ckp
+
+# Airflow
+airflow/logs/
+
+# Node
+node_modules/
+
+# Docker
+*.env.local
+
+_state/
+indices/
+snapshot_cache/
