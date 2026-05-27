@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-AI To-Do 에이전트 독립형 데이터 수집 및 MySQL 적재 스크립트 (.env 자동 로더 탑재본)
+AI To-Do 에이전트 독립형 데이터 수집 및 MySQL 적재 스크립트 (테이블명 오타 보완본)
 위치: airflow/data/scripts/collect_ai_todo.py
 """
 
@@ -57,7 +57,6 @@ def load_env_file():
                     if "=" in stripped:
                         key, val = stripped.split("=", 1)
                         key = key.strip()
-                        # 값 좌우 공백 및 따옴표 제거
                         val = val.strip().strip("'").strip('"')
                         os.environ[key] = val
             logger.info("[ENV] .env 환경 변수가 메모리에 정상 주입되었습니다.")
@@ -66,7 +65,7 @@ def load_env_file():
     else:
         logger.warning("[ENV] 컨테이너 내 예상 경로에서 .env 파일을 찾을 수 없습니다. 시스템 환경 변수를 그대로 사용합니다.")
 
-# 프로그램 시작 시 환경 변수 로더 즉시 실행!
+# 프로그램 시작 시 환경 변수 로더 즉시 실행
 load_env_file()
 
 # ── 💡 보안 환경 변수 가져오기 및 검증 ──────────────────────────────────────────
@@ -87,7 +86,6 @@ if not OPENAI_API_KEY: missing_envs.append("OPENAI_API_KEY")
 
 if missing_envs:
     logger.error(f"[보안 오류] 필수 환경 변수가 누락되었습니다: {', '.join(missing_envs)}")
-    logger.error("컨테이너 내부에 .env 파일이 존재하는지, 혹은 docker-compose.yaml의 environment에 등록되어 있는지 확인해주세요.")
     sys.exit(1)
 
 # ── 데이터베이스 연결 엔진 생성 ────────────────────────────────────────────────────
@@ -128,19 +126,22 @@ def fetch_pb_context(u_id: str, target_date_str: str) -> dict:
             text("SELECT c_id FROM in_charge WHERE u_id = :u_id"),
             {"u_id": u_id}
         ).fetchall()
-        c_ids = [row[0] for row in c_ids_res]
+        c_ids = [int(row[0]) for row in c_ids_res]
         
         if not c_ids:
             logger.warning("담당하는 고객이 존재하지 않습니다.")
             return None
             
-        # (C) 1. 캘린더 기존 일정 수집
+        # SQL에 이식할 안전한 문자열 ID 목록 생성 (예: "1001, 1002")
+        c_ids_str = ", ".join(str(cid) for cid in c_ids)
+            
+        # (C) 1. 캘린더 기존 일정 수집 (💡 schedule -> pb_schedule 테이블명 3글자 오타 전격 수정 완료!)
         start_dt = datetime.combine(base_date, time.min)
         end_dt = datetime.combine(base_date, time.max)
         schedules_res = conn.execute(
             text("""
                 SELECT s.execution_date, s.end_datetime, s.category, s.title, c.name 
-                FROM schedule s
+                FROM pb_schedule s
                 LEFT JOIN customer c ON s.c_id = c.c_id
                 WHERE s.u_id = :u_id AND s.execution_date >= :start_dt AND s.execution_date <= :end_dt
                 ORDER BY s.execution_date ASC
@@ -186,14 +187,13 @@ def fetch_pb_context(u_id: str, target_date_str: str) -> dict:
             
         # (E) 3. 이탈 위험 고객 수집
         risks_res = conn.execute(
-            text("""
+            text(f"""
                 SELECT c.c_id, c.name, c.grade, c.total_assets, cr.grade as risk_grade, cr.reason
                 FROM churn_level cr
                 JOIN customer c ON cr.c_id = c.c_id
-                WHERE cr.c_id IN :c_ids AND cr.grade IN ('주의', '위험')
+                WHERE cr.c_id IN ({c_ids_str}) AND cr.grade IN ('주의', '위험')
                 ORDER BY cr.created_date DESC
-            """),
-            {"c_ids": tuple(c_ids)}
+            """)
         ).fetchall()
         
         unique_risks = {}
@@ -212,22 +212,21 @@ def fetch_pb_context(u_id: str, target_date_str: str) -> dict:
         
         # 1. 만기 상품
         exp_products = conn.execute(
-            text("""
+            text(f"""
                 SELECT cp.c_id, c.name, p.name as p_name, cp.expiration_date
                 FROM customer_product cp
                 JOIN product p ON cp.pd_id = p.pd_id
                 JOIN customer c ON cp.c_id = c.c_id
-                WHERE cp.c_id IN :c_ids AND cp.expiration_date >= :base_date AND cp.expiration_date <= :end_date
+                WHERE cp.c_id IN ({c_ids_str}) AND cp.expiration_date >= :base_date AND cp.expiration_date <= :end_date
             """),
-            {"c_ids": tuple(c_ids), "base_date": base_date, "end_date": end_date}
+            {"base_date": base_date, "end_date": end_date}
         ).fetchall()
         for ep in exp_products:
             event_list.append(f"- [만기 예정] {ep[1]} 고객: 상품 '{ep[2]}' 만기 예정일 ({ep[3].strftime('%Y-%m-%d')})")
             
         # 2. 생일
         birthday_res = conn.execute(
-            text("SELECT c_id, name, birthday, total_assets FROM customer WHERE c_id IN :c_ids"),
-            {"c_ids": tuple(c_ids)}
+            text(f"SELECT c_id, name, birthday, total_assets FROM customer WHERE c_id IN ({c_ids_str})")
         ).fetchall()
         for br in birthday_res:
             if br[2]:
@@ -240,13 +239,12 @@ def fetch_pb_context(u_id: str, target_date_str: str) -> dict:
                     
         # 3. 결혼기념일
         marriage_res = conn.execute(
-            text("""
+            text(f"""
                 SELECT cr.c_id, c.name, cr.wedding_date 
                 FROM customer_relationship cr
                 JOIN customer c ON cr.c_id = c.c_id
-                WHERE cr.c_id IN :c_ids AND cr.is_spouse = 1 AND cr.wedding_date IS NOT NULL
-            """),
-            {"c_ids": tuple(c_ids)}
+                WHERE cr.c_id IN ({c_ids_str}) AND cr.is_spouse = 1 AND cr.wedding_date IS NOT NULL
+            """)
         ).fetchall()
         for mr in marriage_res:
             try:
@@ -417,7 +415,7 @@ def generate_dynamic_fallback(u_id: str, target_date_str: str) -> list:
     
     try:
         with engine.connect() as conn:
-            # 1. 현재 가동 중인 PB가 담당하는 실제 고객 목록 조회 (자산 순으로 정렬)
+            # 1. 현재 가동 중인 PB가 담당하는 실제 고객 목록 조회 (자산 순으로 정렬) (💡 schedule -> pb_schedule 수정)
             customers_res = conn.execute(
                 text("""
                     SELECT c.c_id, c.name, c.grade, c.total_assets 
