@@ -1,12 +1,16 @@
+import pendulum
 from datetime import datetime, timedelta
 from airflow import DAG  # type: ignore
 from airflow.operators.bash import BashOperator  # type: ignore
 
-# 1. 기본 설정 (Default Arguments)
+# 1. 타임존 설정 (KST 한국 표준시)
+local_tz = pendulum.timezone("Asia/Seoul")
+
+# 2. 기본 설정 (Default Arguments)
 default_args = {
     "owner": "poom_ai_team",
     "depends_on_past": False,
-    "start_date": datetime(2026, 5, 26),
+    "start_date": datetime(2026, 5, 26, tzinfo=local_tz),
     "email": ["admin@poom.com"],
     "email_on_failure": True,
     "email_on_retry": False,
@@ -36,7 +40,7 @@ with DAG(
     run_ai_todo_agent = BashOperator(
         task_id="run_ai_todo_agent",
         bash_command="""
-        python3 /opt/airflow/data/scripts/collect_ai_todo.py --u_id user1 --date {{ ds }}
+        python3 /opt/airflow/POOM-AI/agent/todo/main.py --u_id user1 --date {{ logical_date.in_timezone('Asia/Seoul').strftime('%Y-%m-%d') }}
         """,
         # 윈도우 로컬 환경에서 테스트할 경우 아래의 윈도우 절대 경로로 치환하여 사용합니다:
         # bash_command="c:\\ITStudy\\poom\\back\\.venv\\Scripts\\python.exe c:\\ITStudy\\poom\\ai\\agent\\todo\\main.py --u_id user1 --date {{ ds }}"
