@@ -40,10 +40,9 @@ with DAG(
     run_ai_todo_agent = BashOperator(
         task_id="run_ai_todo_agent",
         bash_command="""
-        python3 /opt/airflow/POOM-AI/agent/todo/main.py --u_id user1 --date {{ logical_date.in_timezone('Asia/Seoul').strftime('%Y-%m-%d') }}
+        curl -X POST "http://127.0.0.1:8000/api/v1/ai-todo/run?u_id=user1&date={{ logical_date.in_timezone('Asia/Seoul').strftime('%Y-%m-%d') }}"
         """,
-        # 윈도우 로컬 환경에서 테스트할 경우 아래의 윈도우 절대 경로로 치환하여 사용합니다:
-        # bash_command="c:\\ITStudy\\poom\\back\\.venv\\Scripts\\python.exe c:\\ITStudy\\poom\\ai\\agent\\todo\\main.py --u_id user1 --date {{ ds }}"
+        # 윈도우 로컬 환경에서 테스트할 경우 localhost 주소를 본인의 백엔드 주소로 치환하여 사용합니다.
     )
 
     # [TASK 3] 에이전트 완료 후, PB 모바일/웹 알림 전송 API 트리거 (가상 시뮬레이션)
