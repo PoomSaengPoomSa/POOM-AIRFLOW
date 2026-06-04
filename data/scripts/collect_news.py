@@ -18,9 +18,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+import os
 # ── 설정 ──────────────────────────────────────────────────────────────────────
 
-ES_HOST = "http://elasticsearch:9200"
+ES_HOST = os.getenv("ES_HOST", "http://team1elk.ap.loclx.io:80")
 ES_INDEX = "sbs_news"
 ES_USER = None          # 인증 필요 시 설정
 ES_PASSWORD = None
@@ -69,9 +70,13 @@ def make_doc_id(url: str) -> str:
 
 
 def parse_published_date(entry) -> str | None:
-    """feedparser의 published_parsed → ISO 8601 변환"""
+    """feedparser의 published_parsed → ISO 8601 및 KST(UTC+9) 변환"""
     if hasattr(entry, "published_parsed") and entry.published_parsed:
-        return datetime(*entry.published_parsed[:6]).isoformat()
+        from datetime import timezone, timedelta
+        utc_dt = datetime(*entry.published_parsed[:6], tzinfo=timezone.utc)
+        kst_tz = timezone(timedelta(hours=9))
+        kst_dt = utc_dt.astimezone(kst_tz)
+        return kst_dt.isoformat()
     return None
 
 
