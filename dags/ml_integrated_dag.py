@@ -26,28 +26,115 @@ with DAG(
     tags=["poom", "ml", "integrated", "parallel", "mlflow"],
 ) as dag:
 
-    # 1. 금값 학습 태스크 (S3 동기화 dags/scripts 경로 사용)
-    train_gold = BashOperator(
-        task_id="train_gold_model",
-        bash_command="python3 /opt/airflow/dags/scripts/ml/run_gold.py",
-        # 윈도우 로컬 환경 테스트용 경로 및 가상환경 명시:
-        # bash_command="c:\\Users\\yu\\Documents\\Woorifisa\\poom\\POOM-AI\\.venv\\Scripts\\python.exe c:\\Users\\yu\\Documents\\Woorifisa\\poom\\POOM-AIRFLOW\\data\\scripts\\ml\\run_gold.py"
+    # =========================================================================
+    # 1. GOLD MODEL PIPELINE (금값 예측 모델)
+    # =========================================================================
+    gold_dir = "/opt/airflow/dags/scripts/ml/gold"
+
+    gold_get_data = BashOperator(
+        task_id="gold_get_data",
+        bash_command=f"cd {gold_dir} && mkdir -p data models && PYTHONPATH=. python3 utils/get_data.py"
     )
 
-    # 2. 부동산 학습 태스크 (S3 동기화 dags/scripts 경로 사용)
-    train_real_estate = BashOperator(
-        task_id="train_real_estate_model",
-        bash_command="python3 /opt/airflow/dags/scripts/ml/run_real_estate.py",
-        # 윈도우 로컬 환경 테스트용 경로 및 가상환경 명시:
-        # bash_command="c:\\Users\\yu\\Documents\\Woorifisa\\poom\\POOM-AI\\.venv\\Scripts\\python.exe c:\\Users\\yu\\Documents\\Woorifisa\\poom\\POOM-AIRFLOW\\data\\scripts\\ml\\run_real_estate.py"
+    gold_preprocess = BashOperator(
+        task_id="gold_preprocess",
+        bash_command=f"cd {gold_dir} && mkdir -p data models && PYTHONPATH=. python3 utils/preprocess.py"
     )
 
-    # 3. 기준금리 학습 태스크 (S3 동기화 dags/scripts 경로 사용)
-    train_base_rate = BashOperator(
-        task_id="train_base_rate_model",
-        bash_command="python3 /opt/airflow/dags/scripts/ml/run_base_rate.py",
-        # 윈도우 로컬 환경 테스트용 경로 및 가상환경 명시:
-        # bash_command="c:\\Users\\yu\\Documents\\Woorifisa\\poom\\POOM-AI\\.venv\\Scripts\\python.exe c:\\Users\\yu\\Documents\\Woorifisa\\poom\\POOM-AIRFLOW\\data\\scripts\\ml\\run_base_rate.py"
+    gold_train = BashOperator(
+        task_id="gold_train",
+        bash_command=f"cd {gold_dir} && mkdir -p data models && PYTHONPATH=. python3 train.py"
     )
 
-    # 태스크 의존성을 지정하지 않음으로써 3개 모델이 완벽한 병렬(Parallel)로 동작합니다.
+    gold_test = BashOperator(
+        task_id="gold_test",
+        bash_command=f"cd {gold_dir} && mkdir -p data models && PYTHONPATH=. python3 test.py"
+    )
+
+    gold_explain = BashOperator(
+        task_id="gold_explain",
+        bash_command=f"cd {gold_dir} && mkdir -p data models && PYTHONPATH=. python3 explain.py"
+    )
+
+    gold_interpret = BashOperator(
+        task_id="gold_interpret",
+        bash_command=f"cd {gold_dir} && mkdir -p data models && PYTHONPATH=. python3 interpret_xai.py"
+    )
+
+    gold_get_data >> gold_preprocess >> gold_train >> gold_test >> gold_explain >> gold_interpret
+
+    # =========================================================================
+    # 2. BASE RATE MODEL PIPELINE (기준금리 예측 모델)
+    # =========================================================================
+    base_rate_dir = "/opt/airflow/dags/scripts/ml/base_rate"
+
+    base_rate_get_data = BashOperator(
+        task_id="base_rate_get_data",
+        bash_command=f"cd {base_rate_dir} && mkdir -p data models && PYTHONPATH=. python3 utils/get_data.py"
+    )
+
+    base_rate_preprocess = BashOperator(
+        task_id="base_rate_preprocess",
+        bash_command=f"cd {base_rate_dir} && mkdir -p data models && PYTHONPATH=. python3 utils/preprocess.py"
+    )
+
+    base_rate_train = BashOperator(
+        task_id="base_rate_train",
+        bash_command=f"cd {base_rate_dir} && mkdir -p data models && PYTHONPATH=. python3 train.py"
+    )
+
+    base_rate_test = BashOperator(
+        task_id="base_rate_test",
+        bash_command=f"cd {base_rate_dir} && mkdir -p data models && PYTHONPATH=. python3 test.py"
+    )
+
+    base_rate_explain = BashOperator(
+        task_id="base_rate_explain",
+        bash_command=f"cd {base_rate_dir} && mkdir -p data models && PYTHONPATH=. python3 explain.py"
+    )
+
+    base_rate_interpret = BashOperator(
+        task_id="base_rate_interpret",
+        bash_command=f"cd {base_rate_dir} && mkdir -p data models && PYTHONPATH=. python3 interpret_xai.py"
+    )
+
+    base_rate_get_data >> base_rate_preprocess >> base_rate_train >> base_rate_test >> base_rate_explain >> base_rate_interpret
+
+    # =========================================================================
+    # 3. REAL ESTATE MODEL PIPELINE (부동산 예측 모델)
+    # =========================================================================
+    real_estate_dir = "/opt/airflow/dags/scripts/ml/real_estate"
+
+    real_estate_get_data = BashOperator(
+        task_id="real_estate_get_data",
+        bash_command=f"cd {real_estate_dir} && mkdir -p data models && PYTHONPATH=. python3 utils/get_data.py"
+    )
+
+    real_estate_preprocess = BashOperator(
+        task_id="real_estate_preprocess",
+        bash_command=f"cd {real_estate_dir} && mkdir -p data models && PYTHONPATH=. python3 utils/preprocess.py"
+    )
+
+    real_estate_train = BashOperator(
+        task_id="real_estate_train",
+        bash_command=f"cd {real_estate_dir} && mkdir -p data models && PYTHONPATH=. python3 train.py"
+    )
+
+    real_estate_test = BashOperator(
+        task_id="real_estate_test",
+        bash_command=f"cd {real_estate_dir} && mkdir -p data models && PYTHONPATH=. python3 test.py"
+    )
+
+    real_estate_explain = BashOperator(
+        task_id="real_estate_explain",
+        bash_command=f"cd {real_estate_dir} && mkdir -p data models && PYTHONPATH=. python3 explain.py"
+    )
+
+    real_estate_interpret = BashOperator(
+        task_id="real_estate_interpret",
+        bash_command=f"cd {real_estate_dir} && mkdir -p data models && PYTHONPATH=. python3 interpret_xai.py"
+    )
+
+    real_estate_get_data >> real_estate_preprocess >> real_estate_train >> real_estate_test >> real_estate_explain >> real_estate_interpret
+
+
