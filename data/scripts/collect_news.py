@@ -1,6 +1,6 @@
 """
 SBS 뉴스 RSS → Elasticsearch 적재
-카테고리: 정치(01), 경제(02), 사회(03)
+카테고리: 정치(01), 경제(02), 국제(07)
 """
 
 import feedparser
@@ -29,7 +29,7 @@ ES_PASSWORD = None
 RSS_FEEDS = {
     "정치": "https://news.sbs.co.kr/news/SectionRssFeed.do?sectionId=01&plink=RSSREADER",
     "경제": "https://news.sbs.co.kr/news/SectionRssFeed.do?sectionId=02&plink=RSSREADER",
-    "머그": "https://news.sbs.co.kr/news/VideoMug_RssFeed.do?plink=RSSREADER",
+    "국제": "https://news.sbs.co.kr/news/SectionRssFeed.do?sectionId=07&plink=RSSREADER",
 }
 
 REQUEST_DELAY = 1.0     # 기사 페이지 크롤링 간격 (초)
