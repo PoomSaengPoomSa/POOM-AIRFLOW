@@ -1,0 +1,27 @@
+name: Deploy POOM-AIRFLOW
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Airflow server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AIRFLOW_SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          proxy_host: ${{ secrets.BASTION_HOST }}
+          proxy_username: ${{ secrets.SERVER_USER }}
+          proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/airflow
+            docker compose --env-file .env pull
+            docker compose --env-file .env up -d
