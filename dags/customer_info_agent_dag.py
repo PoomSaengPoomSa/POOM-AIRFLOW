@@ -38,7 +38,7 @@ with DAG(
     run_customer_info_agent = BashOperator(
         task_id="run_customer_info_agent",
         bash_command="""
-        cd /opt/airflow/data/scripts && python3 -m agent.customer.run_info
+        cd /opt/airflow/data/scripts && python3 -m agent.customer.main --u_id pb_b1_1
         """,
         # 윈도우 로컬 환경에서 테스트할 경우 아래의 윈도우 절대 경로로 치환하여 사용합니다:
         # bash_command="cd c:\\Users\\jongh\\Working_Directory\\poom\\POOM-AIRFLOW\\data\\scripts && c:\\Users\\jongh\\Working_Directory\\poom\\POOM-AI\\.venv\\Scripts\\python.exe -m agent.customer.run_info"
