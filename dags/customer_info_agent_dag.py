@@ -37,11 +37,10 @@ with DAG(
     # [TASK 2] Customer Info Agent 전체 고객 실행 (핵심)
     run_customer_info_agent = BashOperator(
         task_id="run_customer_info_agent",
-        bash_command="""
-        cd /opt/airflow/data/scripts && python3 -m agent.customer.main --u_id pb_b1_1
-        """,
-        # 윈도우 로컬 환경에서 테스트할 경우 아래의 윈도우 절대 경로로 치환하여 사용합니다:
-        # bash_command="cd c:\\Users\\jongh\\Working_Directory\\poom\\POOM-AIRFLOW\\data\\scripts && c:\\Users\\jongh\\Working_Directory\\poom\\POOM-AI\\.venv\\Scripts\\python.exe -m agent.customer.run_info"
+        bash_command='''
+        curl -s -H "Content-Type: application/json" -X POST -d '{"u_id": "pb_b1_1"}' http://poomapi.ap.loclx.io/api/v1/customer-main/run
+        ''',
+        # 윈도우 로컬 환경에서 테스트할 경우 localhost 주소를 본인의 백엔드 주소로 치환하여 사용합니다.
     )
 
     # [TASK 3] 에이전트 완료 후 알림 전송 (가상 시뮬레이션)
