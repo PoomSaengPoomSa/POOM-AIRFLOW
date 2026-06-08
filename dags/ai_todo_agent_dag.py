@@ -40,7 +40,7 @@ with DAG(
     run_ai_todo_agent = BashOperator(
         task_id="run_ai_todo_agent",
         bash_command="""
-        curl -X POST "http://172.22.189.158:8010/api/v1/ai-todo/run?u_id=user1&date={{ logical_date.in_timezone('Asia/Seoul').strftime('%Y-%m-%d') }}"
+        curl -X POST "http://172.22.189.158:8010/api/v1/ai-todo/run?u_id=pb_b1_1&date={{ logical_date.in_timezone('Asia/Seoul').strftime('%Y-%m-%d') }}"
         """,
         # 윈도우 로컬 환경에서 테스트할 경우 localhost 주소를 본인의 백엔드 주소로 치환하여 사용합니다.
     )
