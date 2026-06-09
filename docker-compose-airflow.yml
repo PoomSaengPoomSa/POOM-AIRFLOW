@@ -13,7 +13,7 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__EXECUTION_API_SERVER_URL: 'http://airflow-apiserver:8080/execution/'
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
     AIRFLOW__API_AUTH__JWT_SECRET: ${JWT_SECRET_KEY}
-    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-numpy==1.26.4 pandas==2.1.4 deep-translator python-dotenv requests mlflow optuna scikit-learn optuna-integration[mlflow] feedparser elasticsearch boto3 psycopg2-binary pymysql joblib lightgbm catboost xgboost==2.1.4 langchain langchain-openai langgraph pydantic-settings sqlalchemy shap==0.47.1 matplotlib}
+    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-numpy==1.26.4 pandas==2.1.4 deep-translator python-dotenv requests mlflow optuna scikit-learn optuna-integration[mlflow] feedparser elasticsearch boto3 psycopg2-binary pymysql joblib lightgbm catboost xgboost==2.1.4 langchain langchain-openai langgraph pydantic-settings sqlalchemy shap==0.47.1 matplotlib cryptography==42.0.8 cffi==1.17.1}
     AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
     AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
     AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
