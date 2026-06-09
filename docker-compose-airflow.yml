@@ -1,6 +1,6 @@
 #  원격접속하지 마시고 서버에서 powershell로 (WSL 문제임) docker-compose --env-file .env -f team1-airflow/docker-compose-airflow.yaml up -d
 x-airflow-common: &airflow-common
-  image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:3.0.6}
+  image: ghcr.io/poomsaengpoomsa/poom-airflow:latest
   environment: &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
     AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
@@ -13,12 +13,10 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__EXECUTION_API_SERVER_URL: 'http://airflow-apiserver:8080/execution/'
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
     AIRFLOW__API_AUTH__JWT_SECRET: ${JWT_SECRET_KEY}
-    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-numpy==1.26.4 pandas==2.1.4 deep-translator python-dotenv requests mlflow optuna scikit-learn optuna-integration[mlflow] feedparser elasticsearch boto3 psycopg2-binary pymysql joblib lightgbm catboost xgboost==2.1.4 langchain langchain-openai langgraph pydantic-settings sqlalchemy shap==0.47.1 matplotlib cryptography==42.0.8 cffi==1.17.1}
     AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
     AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
     AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
     AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-ap-northeast-2}
-    _SYSTEM_ADDITIONAL_REQUIREMENTS: "libgomp1"
   volumes:
     # 호스트에서 일어난 마운트 변경(S3 연결)을 컨테이너 내부에서도 인지할 수 있도록
     - ./s3_shared_folder/airflow/logs:/opt/airflow/logs
