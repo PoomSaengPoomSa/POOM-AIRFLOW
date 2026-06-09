@@ -132,7 +132,7 @@ def fetch_pb_context(u_id: str, target_date_str: str) -> dict:
             logger.warning("담당하는 고객이 존재하지 않습니다.")
             return None
             
-        # SQL에 이식할 안전한 문자열 ID 목록 생성 (예: "1001, 1002")
+        # SQL에 이식할 안전한 문자열 ID 목록 생성 (예: "1, 2")
         c_ids_str = ", ".join(str(cid) for cid in c_ids)
             
         # (C) 1. 캘린더 기존 일정 수집 (💡 schedule -> pb_schedule 테이블명 3글자 오타 전격 수정 완료!)
@@ -346,13 +346,13 @@ def call_openai_todo_agent(context: dict, u_id: str, target_date_str: str) -> li
 반드시 아래와 같은 JSON 배열 형식으로만 답변하세요. 마크다운 백틱(```json)이나 다른 설명 텍스트를 절대 붙이지 말고 순수 JSON 형식으로만 반환하세요:
 
 [
-  {{
-    "title": "김신한 고객(1001) 생일 축하 감사 연락 및 안부 인사",
+  {
+    "title": "김신한 고객(1) 생일 축하 감사 연락 및 안부 인사",
     "memo": "오늘 생일을 맞이한 VIP 김신한 고객님께 유선 안부 및 커피 기프티콘 발송",
     "category": "안부 연락 제안",
     "execution_date": "{target_date_str} 10:00:00",
-    "c_id": 1001
-  }},
+    "c_id": 1
+  },
   ...
 ]
 """
@@ -595,7 +595,7 @@ def insert_ai_todos_to_db(u_id: str, todos: list):
 
 def main():
     parser = argparse.ArgumentParser(description="Standalone AI To-Do Agent Scheduler Runner")
-    parser.add_argument("--u_id", type=str, default="user1", help="PB ID (e.g. user1)")
+    parser.add_argument("--u_id", type=str, default="pb_b1_1", help="PB ID (e.g. pb_b1_1)")
     parser.add_argument("--date", type=str, help="Target date YYYY-MM-DD (e.g. 2026-05-27)")
     
     args = parser.parse_args()
