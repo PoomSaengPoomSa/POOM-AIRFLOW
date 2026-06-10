@@ -34,9 +34,6 @@ jobs:
           host: ${{ secrets.AIRFLOW_SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          proxy_host: ${{ secrets.BASTION_HOST }}
-          proxy_username: ${{ secrets.SERVER_USER }}
-          proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "docker-compose-airflow.yml"
           target: "/opt/airflow"
       - name: Deploy to Airflow server
@@ -45,9 +42,6 @@ jobs:
           host: ${{ secrets.AIRFLOW_SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          proxy_host: ${{ secrets.BASTION_HOST }}
-          proxy_username: ${{ secrets.SERVER_USER }}
-          proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 30m
           script: |
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u poomsaengpoomsa --password-stdin
