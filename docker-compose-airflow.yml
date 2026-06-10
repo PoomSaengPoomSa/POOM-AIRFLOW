@@ -1,13 +1,12 @@
-#  원격접속하지 마시고 서버에서 powershell로 (WSL 문제임) docker-compose --env-file .env -f team1-airflow/docker-compose-airflow.yaml up -d
 x-airflow-common: &airflow-common
   image: ghcr.io/poomsaengpoomsa/poom-airflow:latest
   environment: &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
     AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${POSTGRES_PASSWORD}@postgres/airflow
+    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:${POSTGRES_PASSWORD}@postgres/airflow
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
-    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__CORE__EXECUTION_API_SERVER_URL: 'http://airflow-apiserver:8080/execution/'
@@ -18,7 +17,6 @@ x-airflow-common: &airflow-common
     AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
     AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-ap-northeast-2}
   volumes:
-    # 호스트에서 일어난 마운트 변경(S3 연결)을 컨테이너 내부에서도 인지할 수 있도록
     - ./s3_shared_folder/airflow/logs:/opt/airflow/logs
     - ./s3_shared_folder/airflow/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/airflow/config:/opt/airflow/config
@@ -35,12 +33,11 @@ x-airflow-common: &airflow-common
       condition: service_healthy
   networks:
     - poom-network
+
 services:
-  # 1. S3를 마운트해주는 전용 도우미 컨테이너
   s3-mounter:
     image: rclone/rclone:latest
     container_name: s3_mounter
-    # FUSE 마운트를 위해 필요한 권한 부여
     cap_add:
       - SYS_ADMIN
     devices:
@@ -48,30 +45,27 @@ services:
     security_opt:
       - apparmor:unconfined
     environment:
-      # AWS S3 연결 정보 (환경변수로 한 번에 처리)
       - RCLONE_CONFIG_MYS3_TYPE=s3
       - RCLONE_CONFIG_MYS3_PROVIDER=AWS
       - RCLONE_CONFIG_MYS3_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - RCLONE_CONFIG_MYS3_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - RCLONE_CONFIG_MYS3_REGION=${AWS_DEFAULT_REGION:-ap-northeast-2}
-    # 수정: 종료 시 정상적으로 umount 하도록 SIGINT 시그널 전송
     stop_signal: SIGINT
-    # 수정: --uid 50000 --gid 0 을 추가하여 airflow-init의 chown 에러 방지
     command: mount mys3:${S3_BUCKET_NAME} /mnt/s3_data --vfs-cache-mode writes --allow-other --allow-non-empty --uid 50000 --gid 0
     volumes:
       - ./s3_shared_folder:/mnt/s3_data:shared
-    # 추가: 실제 마운트가 운영체제 레벨에서 완료되었는지 확인하는 헬스체크로 변경
     healthcheck:
       test: [ "CMD-SHELL", "grep -q '/mnt/s3_data' /proc/mounts || exit 1" ]
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 5s
+
   postgres:
     image: postgres:13
     environment:
       POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: airflow
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
@@ -83,6 +77,7 @@ services:
     restart: always
     networks:
       - poom-network
+
   redis:
     image: redis:7.2-bookworm
     expose:
@@ -96,6 +91,7 @@ services:
     restart: always
     networks:
       - poom-network
+
   airflow-apiserver:
     <<: *airflow-common
     command: api-server
@@ -112,6 +108,7 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+
   airflow-scheduler:
     <<: *airflow-common
     command: scheduler
@@ -126,6 +123,7 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+
   airflow-dag-processor:
     <<: *airflow-common
     command: dag-processor
@@ -140,6 +138,7 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+
   airflow-worker:
     <<: *airflow-common
     command: celery worker
@@ -161,6 +160,7 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
+
   airflow-triggerer:
     <<: *airflow-common
     command: triggerer
@@ -175,6 +175,7 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+
   airflow-init:
     <<: *airflow-common
     entrypoint: /bin/bash
@@ -240,6 +241,7 @@ services:
       _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
       _PIP_ADDITIONAL_REQUIREMENTS: ''
     user: "0:0"
+
   airflow-cli:
     <<: *airflow-common
     profiles:
@@ -253,6 +255,7 @@ services:
       - airflow
     depends_on:
       <<: *airflow-common-depends-on
+
   flower:
     <<: *airflow-common
     command: celery flower
@@ -271,9 +274,11 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+
 networks:
   poom-network:
     name: poom-network
     driver: bridge
+
 volumes:
   postgres-db-volume:
