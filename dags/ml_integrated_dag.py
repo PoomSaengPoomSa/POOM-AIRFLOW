@@ -21,7 +21,7 @@ with DAG(
     "ml_integrated_training_pipeline",
     default_args=default_args,
     description="Integrated Economic Indicators MLflow Parallel Training Pipeline on S3 Paths",
-    schedule="0 4 1 * *",                   # 매월 1일 오전 4시 정각 기동 (요구에 맞춰 스케줄 변경 가능)
+    schedule="0 7 * * *",                   # 매일 오전 7시
     catchup=False,
     tags=["poom", "ml", "integrated", "parallel", "mlflow"],
 ) as dag:
