@@ -65,32 +65,37 @@ def load_env_file():
     else:
         logger.warning("[ENV] 컨테이너 내 예상 경로에서 .env 파일을 찾을 수 없습니다. 시스템 환경 변수를 그대로 사용합니다.")
 
-# 프로그램 시작 시 환경 변수 로더 즉시 실행
-load_env_file()
+# ── 데이터베이스 연결 엔진 생성 및 지연 초기화 ──────────────────────────────────────────
+engine = None
 
-# ── 💡 보안 환경 변수 가져오기 및 검증 ──────────────────────────────────────────
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = os.getenv("DB_PORT", "3306")
-DB_NAME = os.getenv("DB_NAME")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-# 최종 환경 변수 무결성 검증
-missing_envs = []
-if not DB_USER: missing_envs.append("DB_USER")
-if not DB_PASSWORD: missing_envs.append("DB_PASSWORD")
-if not DB_HOST: missing_envs.append("DB_HOST")
-if not DB_NAME: missing_envs.append("DB_NAME")
-if not OPENAI_API_KEY: missing_envs.append("OPENAI_API_KEY")
-
-if missing_envs:
-    logger.error(f"[보안 오류] 필수 환경 변수가 누락되었습니다: {', '.join(missing_envs)}")
-    sys.exit(1)
-
-# ── 데이터베이스 연결 엔진 생성 ────────────────────────────────────────────────────
-DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
-engine = create_engine(DATABASE_URL)
+def get_engine():
+    global engine
+    if engine is None:
+        # 프로그램 시작 시 환경 변수 로더 즉시 실행
+        load_env_file()
+        
+        db_user = os.getenv("DB_USER")
+        db_password = os.getenv("DB_PASSWORD")
+        db_host = os.getenv("DB_HOST")
+        db_port = os.getenv("DB_PORT", "3306")
+        db_name = os.getenv("DB_NAME")
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        
+        # 최종 환경 변수 무결성 검증
+        missing_envs = []
+        if not db_user: missing_envs.append("DB_USER")
+        if not db_password: missing_envs.append("DB_PASSWORD")
+        if not db_host: missing_envs.append("DB_HOST")
+        if not db_name: missing_envs.append("DB_NAME")
+        if not openai_api_key: missing_envs.append("OPENAI_API_KEY")
+        
+        if missing_envs:
+            logger.error(f"[보안 오류] 필수 환경 변수가 누락되었습니다: {', '.join(missing_envs)}")
+            sys.exit(1)
+            
+        database_url = f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}?charset=utf8mb4"
+        engine = create_engine(database_url)
+    return engine
 
 # ── 1. 데이터베이스로부터 상황 분석 컨텍스트 조회 ───────────────────────────────────────
 
@@ -107,7 +112,7 @@ def fetch_pb_context(u_id: str, target_date_str: str) -> dict:
         base_date = datetime.now().date()
     end_date = base_date + timedelta(days=30)
     
-    with engine.connect() as conn:
+    with get_engine().connect() as conn:
         # (A) PB 기본 정보 확인
         pb_res = conn.execute(
             text("SELECT name, position, branch FROM pb_user WHERE u_id = :u_id"),
@@ -414,7 +419,7 @@ def generate_dynamic_fallback(u_id: str, target_date_str: str) -> list:
     todos = []
     
     try:
-        with engine.connect() as conn:
+        with get_engine().connect() as conn:
             # 1. 현재 가동 중인 PB가 담당하는 실제 고객 목록 조회 (자산 순으로 정렬) (💡 schedule -> pb_schedule 수정)
             customers_res = conn.execute(
                 text("""
@@ -547,7 +552,7 @@ def insert_ai_todos_to_db(u_id: str, todos: list):
     current_timestamp = datetime.utcnow()
     inserted_count = 0
     
-    with engine.begin() as conn:
+    with get_engine().begin() as conn:
         conn.execute(
             text("""
                 DELETE FROM ai_todo 
