@@ -38,7 +38,7 @@ with DAG(
     run_customer_info_agent = BashOperator(
         task_id="run_customer_info_agent",
         bash_command='''
-        curl -s -H "Content-Type: application/json" -X POST -d '{"u_id": "pb_b1_1"}' http://poomapi.ap.loclx.io/api/v1/customer-main/run
+        curl -f -s -H "Content-Type: application/json" -X POST -d '{"u_id": "pb_b1_1"}' http://poom-alb-1963738321.ap-northeast-2.elb.amazonaws.com:8000/api/v1/customer-main/run
         ''',
         # 윈도우 로컬 환경에서 테스트할 경우 localhost 주소를 본인의 백엔드 주소로 치환하여 사용합니다.
     )
