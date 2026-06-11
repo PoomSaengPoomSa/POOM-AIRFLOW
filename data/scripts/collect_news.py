@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 import os
 # ── 설정 ──────────────────────────────────────────────────────────────────────
 
-ES_HOST = os.getenv("ES_HOST", "http://team1elk.ap.loclx.io:80")
+ES_HOST = os.getenv("ES_HOST", "http://localhost:9200")
 ES_INDEX = "sbs_news"
 ES_USER = None          # 인증 필요 시 설정
 ES_PASSWORD = None
