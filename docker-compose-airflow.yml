@@ -17,6 +17,13 @@ x-airflow-common: &airflow-common
     AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
     AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-ap-northeast-2}
     ES_HOST: ${ES_HOST}
+    ES_HOST: ${ES_HOST}
+    DB_USER: ${DB_USER}
+    DB_PASSWORD: ${DB_PASSWORD}
+    DB_HOST: ${DB_HOST}
+    DB_PORT: ${DB_PORT}
+    DB_NAME: ${DB_NAME}
+    OPENAI_API_KEY: ${OPENAI_API_KEY}
   volumes:
     - ./s3_shared_folder/airflow/logs:/opt/airflow/logs
     - ./s3_shared_folder/airflow/dags:/opt/airflow/dags
