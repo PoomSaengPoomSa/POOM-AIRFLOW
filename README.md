@@ -77,13 +77,11 @@ echo -e "AIRFLOW_UID=$(id -u)" >> .env
 docker compose -f docker-compose-airflow.yml up -d
 
 # 4. Airflow UI 접속
-# http://localhost:8080  (기본 계정: airflow / airflow)
+# http://localhost:8080
 
 # 5. Celery Flower 모니터링
 # http://localhost:5555
 ```
-
-> **최소 사양:** RAM 4GB 이상, CPU 2코어 이상, 디스크 10GB 이상
 
 ---
 
